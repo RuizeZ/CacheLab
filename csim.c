@@ -4,11 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdint.h>
 #define SIZE 100
 
 void readargv(int argc, char* argv[]);
 void enQueue(unsigned *setaddr);
-unsigned* deQueue();
+unsigned* deQueue(unsigned *setaddr, unsigned *end);
 void simulate();
 
 int HelpFlag, VerboseFlag, SetIndexBits, LinesPerSet, BlockBits;
@@ -54,7 +55,7 @@ void simulate(){
     unsigned address;	
     int	size;	
     unsigned setindex, tag;
-    unsigned *setaddr, *pi;
+    unsigned *setaddr, *pi, *end;
     unsigned linesize = pow(2, BlockBits)+2;
 
     if (HelpFlag == 1)
@@ -76,8 +77,7 @@ void simulate(){
     else
     {
         pi = malloc(pow(2, SetIndexBits) * LinesPerSet * linesize * sizeof(int));
-        //printf("pi = %p\n", pi);
-        while(fscanf(pFile, " %c %x,%d", &identifier, &address, &size)>0)	
+        while(fscanf(pFile, " %c %x,%d", &identifier, &address, &size)>0)
         {	
             
             if(identifier == ' ')
@@ -87,87 +87,70 @@ void simulate(){
             else
             {
                 // Separate address into differnt part in cache
-                // blockoffset = (address << (32 - BlockBits)) >> (32 - BlockBits);
                 setindex = (address << (32 - BlockBits - SetIndexBits)) >> (32 - SetIndexBits);
                 tag = address >> (BlockBits + SetIndexBits);
-                // printf("blockoffset = %d\n", blockoffset);
-                // printf("setindex = %d\n", setindex);
-                // printf("tag = %d\n", tag);
 
                 //find the set
-                setaddr = pi + (setindex * linesize);
-                // printf("setaddr %p\n", setaddr);
-                enQueue(setaddr);
+                setaddr = pi + (setindex * linesize * LinesPerSet);
                 //if miss
-                identifier_M:
-                // printf("tag = %d\n", tag);
-                // printf("*(setaddr + 1) = %d\n", *(setaddr + 1));
-                if ((tag != *(setaddr + 1)) || (!*setaddr) )
+                for (int i = 0; i < LinesPerSet; i++)
                 {
-                    //printf("miss\n");
-                    miss++;
-                    setaddr = deQueue();
-                    //printf("current setaddr %p\n", setaddr);
-                    *setaddr = 1;
-                    *(setaddr + 1) = tag;
-                    if(identifier == 'M'){
-                        goto identifier_M;
+                    enQueue(setaddr + (i * linesize));
+                    identifier_M:
+                    //if miss
+                    if ((tag != *(setaddr + (i * linesize) + 1)) || (!*(setaddr + (i * linesize)))){
+                        if (i == LinesPerSet - 1){
+                            miss++;
+                            end = setaddr + (i * linesize);
+                            setaddr = deQueue(setaddr, end);
+                            *(setaddr) = 1;
+                            *(setaddr + 1) = tag;
+                            if(identifier == 'M'){
+                                goto identifier_M;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        hit++;
+                        break;
                     }
                 }
-                else
-                {
-                    //printf("hit\n");
-                    hit++;
-                }
-                
-                // //if data load
-                // if(identifier == 'L')
-                // {
-                    
-                // //if miss
-
-                    
-                // }
-                // else if(identifier == 'M')
-                // {
-
-                // }
-                // else if(identifier == 'S'){
-
-                // }
-            }
-            
+            }   
         }
+        free(pi);
     }
-    
-
-
-
-    
 }
 void enQueue(unsigned * setaddr) {
-    if (rear == SIZE - 1)
-    printf("Queue is Full!!\n");
+    if (rear == SIZE - 1){
+        printf("Queue is Full!!\n");
+    }
     else {
         if (front == -1)
             front = 0;
         rear++;
         items[rear] = setaddr;
-        // printf("Inserted -> %p\n", items[rear]);
     }
 }
 
-unsigned* deQueue() {
+unsigned* deQueue(unsigned * setaddr, unsigned * end) {
     unsigned * currentsetaddr;
     if (front == -1)
         printf("Queue is Empty!!\n");
     else {
+        for (int i = 0; i <= rear; i++)
+        {
+            if (((uintptr_t)items[i] <= (uintptr_t)end) && ((uintptr_t)items[i] >= (uintptr_t)setaddr))
+            {
+                currentsetaddr = items[i];
+            }
+            
+        }
+        
         currentsetaddr = items[front];
-        // printf("Deleted : %p\n", items[front]);
         front++;
         if (rear != 0)
         {
-            //printf("eviction\n");
             evictions++;
         }
         
@@ -176,10 +159,6 @@ unsigned* deQueue() {
     }
     return currentsetaddr;
 }
-
-
-
-
 
 
 int main(int argc, char* argv[])
