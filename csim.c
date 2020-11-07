@@ -85,7 +85,7 @@ void simulate(){
             }
             else
             {
-                printf("\n%c %x,%d ", identifier, address, size);
+                //printf("\n%c %x,%d ", identifier, address, size);
                 Msecond = 1;
                 time++;
                 // Separate address into differnt part in cache
@@ -112,10 +112,10 @@ identifier_M:
                     if ((tag != *tagincache) || (!*validbit)){
                         if (!*validbit || i == LinesPerSet - 1)
                         {
-                            printf("miss ");
+                            //printf("miss ");
                             miss++;
                             if (*validbit && i == LinesPerSet - 1){
-                                printf("eviction ");
+                                //printf("eviction ");
                                 evictions++;
                                 validbit = LRUline;
                             }
@@ -135,12 +135,13 @@ identifier_M:
                     }
                     else
                     {
-                        printf("hit ");
+                        //printf("hit ");
                         hit++;
                         if(identifier == 'M' && Msecond == 1){
                             Msecond++;
                             goto identifier_M;
                         }
+                        *validbit = time;
                         break;
                     }
                 }
@@ -154,6 +155,7 @@ int main(int argc, char* argv[])
 {
     readargv(argc, argv);
     simulate();
+    //printf("\n");
     printSummary(hit, miss, evictions);
     return 0;
 }
