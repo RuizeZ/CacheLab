@@ -53,7 +53,7 @@ void readargv(int argc, char* argv[])
 void simulate(){
     char identifier;
     unsigned address;	
-    int	size, time = 0, mintime = 0, ifevictions;	
+    int	size, time = 0, mintime = 0, Msecond;	
     unsigned setindex, tag;
     unsigned *setaddr, *pi, *LRUline, *tagincache, *validbit;
     unsigned linesize = pow(2, BlockBits)+2;
@@ -79,13 +79,15 @@ void simulate(){
         pi = malloc(pow(2, SetIndexBits) * LinesPerSet * linesize * sizeof(int));
         while(fscanf(pFile, " %c %x,%d", &identifier, &address, &size)>0)
         {	
-            time++;
-            if(identifier == ' ')
+            if(identifier == 'I')
             {
                 continue;
             }
             else
             {
+                printf("\n%c %x,%d ", identifier, address, size);
+                Msecond = 1;
+                time++;
                 // Separate address into differnt part in cache
                 setindex = (address << (32 - BlockBits - SetIndexBits)) >> (32 - SetIndexBits);
                 tag = address >> (BlockBits + SetIndexBits);
@@ -95,14 +97,12 @@ void simulate(){
                 //if miss
                 for (int i = 0; i < LinesPerSet; i++)
                 {
-                    ifevictions = 0;
                     //enQueue(setaddr + (i * linesize));
                     tagincache = setaddr + (i * linesize) + 1;
                     validbit = setaddr + (i * linesize);
                     
-                    if (*validbit <= mintime && *validbit != 0)
+                    if (i == 0 || (*validbit <= mintime && *validbit != 0))
                     {
-                        ifevictions = 1;
                         mintime = *validbit;
                         LRUline = validbit;
                     }
@@ -112,31 +112,35 @@ identifier_M:
                     if ((tag != *tagincache) || (!*validbit)){
                         if (!*validbit || i == LinesPerSet - 1)
                         {
-                            printf("%c %x,%d miss\n", identifier, address, size);
+                            printf("miss ");
                             miss++;
-                            if (ifevictions == 1)
-                            {
-                                printf("%c %x,%d evictions\n", identifier, address, size);
+                            if (*validbit && i == LinesPerSet - 1){
+                                printf("evictions ");
                                 evictions++;
                                 validbit = LRUline;
                             }
                             
                             *validbit = time;
                             *(validbit + 1) = tag;
-                            
                             if (i == 0)
                             {
                                 mintime = *validbit;
                             }
                             if(identifier == 'M'){
+                                Msecond++;
                                 goto identifier_M;
                             }
+                            break;
                         }
                     }
                     else
                     {
-                        printf("%c %x,%d hit\n", identifier, address, size);
+                        printf("hit ");
                         hit++;
+                        if(identifier == 'M' && Msecond == 1){
+                            Msecond++;
+                            goto identifier_M;
+                        }
                         break;
                     }
                 }
@@ -145,45 +149,6 @@ identifier_M:
         free(pi);
     }
 }
-// void enQueue(unsigned * setaddr) {
-//     if (rear == SIZE - 1){
-//         printf("Queue is Full!!\n");
-//     }
-//     else {
-//         if (front == -1)
-//             front = 0;
-//         rear++;
-//         items[rear] = setaddr;
-//     }
-// }
-
-// unsigned* deQueue(unsigned * setaddr, unsigned * end) {
-//     unsigned * currentsetaddr;
-//     if (front == -1)
-//         printf("Queue is Empty!!\n");
-//     else {
-//         for (int i = 0; i <= rear; i++)
-//         {
-//             if (((uintptr_t)items[i] <= (uintptr_t)end) && ((uintptr_t)items[i] >= (uintptr_t)setaddr))
-//             {
-//                 currentsetaddr = items[i];
-//             }
-            
-//         }
-        
-//         currentsetaddr = items[front];
-//         front++;
-//         if (rear != 0)
-//         {
-//             evictions++;
-//         }
-        
-//         if (front > rear)
-//             front = rear = -1;
-//     }
-//     return currentsetaddr;
-// }
-
 
 int main(int argc, char* argv[])
 {
