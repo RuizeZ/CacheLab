@@ -115,7 +115,7 @@ identifier_M:
                             printf("miss ");
                             miss++;
                             if (*validbit && i == LinesPerSet - 1){
-                                printf("evictions ");
+                                printf("eviction ");
                                 evictions++;
                                 validbit = LRUline;
                             }
