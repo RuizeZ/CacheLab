@@ -22,35 +22,92 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
-    int temp1, temp2;
+    int a0, a1, a2, a3, a4, a5, a6, a7;
+    int i, j, k, l;
     if (M == 32)
     {
-        int i, j;
         for (i = 0; i < N; i += 8) {
             for (j = 0; j < M; j += 8) {
-                for (int k = i; k < i+8; k++)
+                for (k = i; k < i+8; k++)
                 {
-                    for (int p = j; p < j+8; p++)
+                    for (l = j; l < j+8; l++)
                     {
-                        if (k == p)
+                        if (k == l)
                         {
-                            temp1 = A[k][p];
-                            temp2 = k;
+                            a0 = A[k][l];
+                            a1 = k;
                         }
                         else
                         {
-                            B[p][k] = A[k][p];
+                            B[l][k] = A[k][l];
                         }
                         
                     }
                     if (i == j)
                     {
-                        B[temp2][temp2] = temp1;
+                        B[a1][a1] = a0;
                     }
                 }
             }
         }
     }
+    else if (M == 64)
+    {
+        for (i = 0; i < N; i += 8) {
+            for (j = 0; j < M; j += 8) {
+                for (k = i; k < i + 4; k++) {
+                    a0 = A[k][j];
+                    a1 = A[k][j + 1];
+                    a2 = A[k][j + 2];
+                    a3 = A[k][j + 3];
+                    a4 = A[k][j + 4];
+                    a5 = A[k][j + 5];
+                    a6 = A[k][j + 6];
+                    a7 = A[k][j + 7];
+
+                    B[j][k] = a0;
+                    B[j + 1][k] = a1;
+                    B[j + 2][k] = a2;
+                    B[j + 3][k] = a3;
+
+                    B[j][k + 4] = a4;
+                    B[j + 1][k + 4] = a5;
+                    B[j + 2][k + 4] = a6;
+                    B[j + 3][k + 4] = a7;
+                }
+                for (l = j + 4; l < j + 8; l++) {
+
+                    a4 = A[i + 4][l - 4]; // A left-down col
+                    a5 = A[i + 5][l - 4];
+                    a6 = A[i + 6][l - 4];
+                    a7 = A[i + 7][l - 4];
+
+                    a0 = B[l - 4][i + 4]; // B right-above line
+                    a1 = B[l - 4][i + 5];
+                    a2 = B[l - 4][i + 6];
+                    a3 = B[l - 4][i + 7];
+
+                    B[l - 4][i + 4] = a4; // set B right-above line 
+                    B[l - 4][i + 5] = a5;
+                    B[l - 4][i + 6] = a6;
+                    B[l - 4][i + 7] = a7;
+
+                    B[l][i] = a0;         // set B left-down col
+                    B[l][i + 1] = a1;
+                    B[l][i + 2] = a2;
+                    B[l][i + 3] = a3;
+
+                    B[l][i + 4] = A[i + 4][l];
+                    B[l][i + 5] = A[i + 5][l];
+                    B[l][i + 6] = A[i + 6][l];
+                    B[l][i + 7] = A[i + 7][l];
+                }
+            }
+        }
+    }
+    
+
+
     
 }
 
