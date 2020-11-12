@@ -27,7 +27,7 @@ extern void registerFunctions();
 
 /* External variables defined in cachelab-tools.c */
 extern trans_func_t func_list[MAX_TRANS_FUNCS];
-extern int func_counter; 
+extern int func_counter;
 
 /* Globals set on the command line */
 static int M = 0;
